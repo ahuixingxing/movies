@@ -235,12 +235,12 @@
                     </a>
                     <ul class="treeview-menu">
                         <li id="g-9-1">
-                            <a href="auth_add.html">
+                            <a href="{{ url_for('admin.auth_add') }}">
                                 <i class="fa fa-circle-o"></i> 添加权限
                             </a>
                         </li>
                         <li id="g-9-2">
-                            <a href="auth_list.html">
+                            <a href="{{ url_for('admin.auth_list') }}">
                                 <i class="fa fa-circle-o"></i> 权限列表
                             </a>
                         </li>
@@ -254,12 +254,12 @@
                     </a>
                     <ul class="treeview-menu">
                         <li id="g-10-1">
-                            <a href="role_add.html">
+                            <a href="{{url_for('admin.role_add') }}">
                                 <i class="fa fa-circle-o"></i> 添加角色
                             </a>
                         </li>
                         <li id="g-10-2">
-                            <a href="role_list.html">
+                            <a href="{{ url_for('admin.role_list') }}">
                                 <i class="fa fa-circle-o"></i> 角色列表
                             </a>
                         </li>
@@ -273,12 +273,12 @@
                     </a>
                     <ul class="treeview-menu">
                         <li id="g-11-1">
-                            <a href="admin_add.html">
+                            <a href="{{ url_for('admin.admin_add') }}">
                                 <i class="fa fa-circle-o"></i> 添加管理员
                             </a>
                         </li>
                         <li id="g-11-2">
-                            <a href="admin_list.html">
+                            <a href="{{ url_for('admin.admin_list') }}">
                                 <i class="fa fa-circle-o"></i> 管理员列表
                             </a>
                         </li>
