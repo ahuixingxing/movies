@@ -1,7 +1,7 @@
 from . import admin
 from flask import render_template, redirect, url_for,flash, session, request
 from app.admin.forms import LoginForm,TagForm,MovieForm,PreviewForm
-from app.models import Admin,Tag,Movie,Preview,User
+from app.models import Admin,Tag,Movie,Preview,User,Comment
 from app import db
 from functools import wraps
 from werkzeug.utils import secure_filename
@@ -402,10 +402,31 @@ def user_delete(delete_id=None):
     flash('删除会员成功！', category='ok')
     return redirect(url_for('admin.user_list', page=1))
 
-@admin.route("/comment/list/")
+@admin.route("/comment/list/<int:page>")
 @admin_login_require
-def comment_list():
-    return render_template('admin/comment_list.html')
+def comment_list(page=None):
+    if page is None:
+        page=1
+    page_comments=Comment.query.join(
+        Movie
+    ).join(
+        User
+    ).filter(
+        Movie.id==Comment.movie_id,
+        User.id==Comment.user_id
+    ).order_by(
+        Comment.add_time.desc()
+    ).paginate(page=page,per_page=10)
+    return render_template('admin/comment_list.html',page_comments=page_comments)
+
+@admin.route("/comment/delete/<int:delete_id>/")
+@admin_login_require
+def comment_delete(delete_id=None):
+    comment=Comment.query.get_or_404(delete_id)
+    db.session.delete(comment)
+    db.session.commit()
+    flash('删除评论成功!',category='ok')
+    return redirect(url_for('admin.comment_list',page=1))
 
 @admin.route("/collect/list/")
 @admin_login_require
