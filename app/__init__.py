@@ -12,6 +12,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]=True
 app.config["SECRET_KEY"]='b1b7ed6af47d4031acbdeb420658ba84'
 #定义文件上传保存的路径,在__init__.py文件所在的目录创建media文件夹,用于保存上传的文件
 app.config['UP_DIR']=os.path.join(os.path.abspath(os.path.dirname(__file__)),'static/media/')
+app.config['USER_IMAGE']=os.path.join(os.path.abspath(os.path.dirname(__file__)),'static/user/')    #存放用户头像的路径
 
 #定义db对象,实例化SQLAlchemy,传入app对象
 db=SQLAlchemy(app)
