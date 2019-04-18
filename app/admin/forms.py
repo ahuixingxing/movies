@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm     #表单基类
 from wtforms import StringField,PasswordField,SubmitField,FileField,TextAreaField,SelectField,SelectMultipleField
 from wtforms.validators import DataRequired,ValidationError,EqualTo
-from app.models import Admin,Tag,Preview,Auth,Role
+from app.models import Admin,Tag,Auth,Role
 
 class LoginForm(FlaskForm):
     #管理员登录表单
