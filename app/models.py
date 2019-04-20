@@ -31,6 +31,11 @@ class User(db.Model):
 
     def __repr__(self):  # 查询的时候返回
         return "<User %r>" % self.name
+        
+    def check_pwd(self,input_pwd):
+        #验证密码是否正确,直接将hash密码和输入的密码进行比较,如何相同,返回true
+        from werkzeug.security import check_password_hash
+        return check_password_hash(self.pwd,input_pwd)
 
 
 # 会员日志
