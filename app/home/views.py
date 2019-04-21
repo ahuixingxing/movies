@@ -1,7 +1,7 @@
 from . import home
 from flask import render_template, redirect, url_for,flash,session,request
-from .forms import RegisterForm,LoginFrom,UserDetailForm,PwdForm
-from app.models import User,UserLog,Comment,MovieCollect
+from .forms import RegisterForm,LoginFrom,UserDetailForm,PwdForm,CommentForm
+from app.models import User,UserLog,Comment,MovieCollect,Preview,Movie,Tag
 from werkzeug.security import generate_password_hash
 from app import db,app
 import uuid
@@ -17,13 +17,70 @@ def user_login_require(func):
             # 如果session中未找到该键，则用户需要登录
             return redirect(url_for('home.login', next=request.url))
         return func(*args, **kwargs)
-
     return decorated_function
 
-@home.route("/")
-def index():
-    return render_template('home/index.html')
+@home.route("/<int:page>/")
+def index(page):
+    if not page:
+        page = 1
+    all_tag = Tag.query.all()
+    # 星级转换
+    star_list = [(1, '1星'), (2, '2星'), (3, '3星'), (4, '4星'), (5, '5星')]
+    all_star = map(lambda x: {'num': x[0], 'info': x[1]}, star_list)
+    # 年份列表
+    import time
+    now_year = time.localtime()[0]
+    year_range = [year for year in range(int(now_year)-1, int(now_year)-5, -1)]
+    # print(year_range)
+    page_movies = Movie.query
+    selected = dict()
+    tag_id = request.args.get('tag_id', 0)  # 获取链接中的标签id，0为显示所有
+    if int(tag_id) != 0:
+        page_movies = page_movies.filter_by(tag_id=tag_id)
+    selected['tag_id'] = tag_id
 
+    star_num = request.args.get('star_num', 0)  # 获取星级数字，0为显示所有
+    if int(star_num) != 0:
+        page_movies = page_movies.filter_by(star=star_num)
+    selected['star_num'] = int(star_num)
+
+    time_year = request.args.get('time_year', 1)  # 1为所有日期，0为更早，月份为所选
+    from sqlalchemy import extract, exists, between
+    if int(time_year) == 0:
+        page_movies = page_movies  # !!!没写这个功能
+    elif int(time_year) == 1:
+        page_movies = page_movies  # 所有年份的电影
+    else:
+        page_movies = page_movies.filter(extract('year', Movie.release_time) == time_year)  # 筛选年份
+    selected['time_year'] = time_year
+
+    play_num = request.args.get('play_num', 1)  # 1为从高到低，0为从低到好
+    if int(play_num) == 1:
+        page_movies = page_movies.order_by(
+            Movie.play_num.desc()
+        )
+    else:
+        page_movies = page_movies.order_by(Movie.play_num.asc())
+    selected['play_num'] = play_num
+
+    comment_num = request.args.get('comment_num', 1)  # 1为从高到低，0为从低到好
+    if int(comment_num) == 1:
+        page_movies = page_movies.order_by(
+            Movie.comment_num.desc()
+        )
+    else:
+        page_movies = page_movies.order_by(Movie.comment_num.asc())
+    selected['comment_num'] = comment_num
+
+    page_movies = page_movies.paginate(page=page, per_page=12)
+    return render_template('home/index.html',
+                           all_tag=all_tag,
+                           all_star=all_star,
+                           now_year=now_year,
+                           year_range=year_range,
+                           selected=selected,
+                           page_movies=page_movies
+                           )
 
 @home.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -178,12 +235,63 @@ def moviecollect(page):
 
 @home.route("/indexbanner/")
 def indexbanner():
-    return render_template('/home/indexbanner.html')
+    previews=Preview.query.all()
+    return render_template('/home/indexbanner.html',previews=previews)
 
-@home.route('/search')
+@home.route('/search/')
 def search():
-    return  render_template('home/search.html')
+    keyword = request.args.get('keyword')
+    search_movies = Movie.query.filter(
+        Movie.title.ilike("%" + keyword + "%")
+    ).order_by(
+        Movie.add_time.desc()
+    )
+    search_count = Movie.query.filter(Movie.title.ilike("%" + keyword + "%")).count()
+    return render_template('home/search.html', keyword=keyword, search_movies=search_movies, search_count=search_count)
 
-@home.route('/play')
-def play():
-    return render_template('home/play.html')
+@home.route('/play/<int:movie_id>/page/<int:page>/', methods=['GET', 'POST'])
+def play(movie_id=None, page=None):
+    movie = Movie.query.join(Tag).filter(
+        Tag.id == Movie.tag_id,
+        Movie.id == int(movie_id)
+    ).first_or_404()
+
+    if request.method == 'GET' and int(request.args.get('page', 0)) != 1:
+        movie.play_num += 1  # 访问量加1
+        db.session.commit()
+
+    form = CommentForm()
+    if 'login_user' not in session:
+        form.submit.render_kw = {
+            'disabled': "disabled",
+            "class": "btn btn-success",
+            "id": "btn-sub"
+        }
+    if form.validate_on_submit() and 'login_user' in session:
+        data = form.data
+        comment = Comment(
+            content=data['content'],
+            movie_id=movie.id,
+            user_id=session['login_user_id']
+        )
+        db.session.add(comment)
+        movie.comment_num += 1
+        db.session.commit()
+        flash('评论成功', category='ok')
+        return redirect(url_for('home.play', movie_id=movie.id, page=1))
+
+    if page is None:
+        page = 1
+    # 查询的时候关联标签，采用join来加进去,多表关联用filter,过滤用filter_by
+    page_comments = Comment.query.join(
+        Movie
+    ).join(
+        User
+    ).filter(
+        Movie.id == movie.id,
+        User.id == Comment.user_id
+    ).order_by(
+        Comment.add_time.desc()
+    ).paginate(page=page, per_page=10)
+
+    return render_template('home/play.html', movie=movie, form=form, page_comments=page_comments)
