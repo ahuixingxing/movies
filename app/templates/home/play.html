@@ -129,8 +129,10 @@
                         {{ form.submit }}
                         &nbsp;
                         {% if 'login_user' in session %}
-                            <a class="btn btn-danger" id="btn-col"><span class="glyphicon glyphicon-heart"></span>&nbsp;收藏电影</a>
-                        {% endif %}
+                            <a class="btn btn-danger" id="btn-col">
+                                <span class="glyphicon glyphicon-heart"></span>&nbsp;收藏电影
+                            </a>
+                        {% endif %}                        
                     </form>
                     <ul class="commentList">
                         {% for comment in page_comments.items %}
@@ -246,4 +248,30 @@ var ue = UE.getEditor('input_content',{
     });
 </script>
 <!--播放页面-->
+
+<!--收藏-->
+<script>
+    $(document).ready(function (){
+        $("#btn-col").click(function () {
+            var movie_id = "{{ movie.id }}";
+            var user_id = "{{ session['login_user_id'] }}";
+            $.ajax({
+                url: "{{ url_for('home.add_moviecollect') }}",
+                type: "GET",
+                data: "movie_id=" + movie_id + "&user_id=" + user_id,
+                dataType: "json",
+                success: function (res) {
+                    if (res.ok == 1) {
+                        $("#show_collect_msg").empty();
+                        $("#show_collect_msg").append("收藏成功！");
+                    } else {
+                        $("#show_collect_msg").empty();
+                        $("#show_collect_msg").append("已经收藏！");
+                    }
+                }
+            })
+        });
+    });
+</script>
+<!--收藏-->
 {% endblock %}

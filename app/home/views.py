@@ -295,3 +295,25 @@ def play(movie_id=None, page=None):
     ).paginate(page=page, per_page=10)
 
     return render_template('home/play.html', movie=movie, form=form, page_comments=page_comments)
+
+@home.route('/moviecollect/add/')
+@user_login_require
+def add_moviecollect():
+    movie_id = request.args.get('movie_id', '')
+    user_id = request.args.get('user_id', '')
+    movie_collect = MovieCollect.query.filter_by(
+        user_id=int(user_id),
+        movie_id=int(movie_id)
+    )
+    if movie_collect.count() == 1:
+        data = dict(ok=0)
+    if movie_collect.count() == 0:
+        movie_collect = MovieCollect(
+            user_id=int(user_id),
+            movie_id=int(movie_id)
+        )
+        db.session.add(movie_collect)
+        db.session.commit()
+        data = dict(ok=1)
+    import json
+    return json.dumps(data)
